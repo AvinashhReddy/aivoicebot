@@ -30,37 +30,43 @@ bot_state = VoiceBotState()
 
 
 @llm.function_tool
-async def create_ticket_tool(name: str, email: str, phone: str, address: str, issue: str, price: float) -> str:
+async def create_ticket_tool(
+    name: str,          # Customer's full name (required, minimum 2 characters, cannot be placeholder)
+    email: str,         # Valid email address (required, must contain @ and domain)
+    phone: str,         # Customer's phone number (required, minimum 7 characters)
+    address: str,       # Customer's complete physical address (required, minimum 10 characters)
+    issue: str,         # Exact issue type: "Wi-Fi not working", "Email login issues - password reset", "Slow laptop performance - CPU change", or "Printer problems - power plug change"
+    price: float        # Service price: 10.0, 15.0, 20.0, or 25.0 (must match issue type)
+) -> str:
     """
     Create a new support ticket with customer information.
     
-    IMPORTANT: All parameters are mandatory. Do NOT call this function unless you have collected:
-    - name: Customer's full name (not empty, not placeholder)
-    - email: Valid email address (must contain @ symbol)
-    - phone: Customer's phone number (not empty, not placeholder)
-    - address: Customer's physical address (not empty, not placeholder)
-    - issue: Specific IT issue description
-    - price: Exact service price (must be > 0)
-    
-    Only call this function after confirming ALL details with the customer.
+    All parameters are mandatory and must be valid:
+    - name: Customer's full name (not placeholder like 'unknown' or 'test')
+    - email: Valid email format with @ and domain
+    - phone: Real phone number (not placeholder)
+    - address: Physical address of Customer (not placeholder)
+    - issue: Must be one of the 4 supported issue types exactly as listed
+    - price: Must be 10.0, 15.0, 20.0, or 25.0 and match the issue type
     """
     try:
+        
         # Validate all required fields are properly filled
         validation_errors = []
         
-        if not name or name.lower() in ['', 'unknown', 'n/a', 'none', 'not provided']:
+        if not name :
             validation_errors.append("Customer name is required")
             
-        if not email or '@' not in email or email.lower() in ['', 'unknown', 'n/a', 'none', 'not provided']:
+        if not email or '@' not in email:
             validation_errors.append("Valid email address is required")
             
-        if not phone or phone.lower() in ['', 'unknown', 'n/a', 'none', 'not provided']:
+        if not phone:
             validation_errors.append("Phone number is required")
             
-        if not address or address.lower() in ['', 'unknown', 'n/a', 'none', 'not provided']:
+        if not address:
             validation_errors.append("Physical address is required")
             
-        if not issue or issue.lower() in ['', 'unknown', 'n/a', 'none', 'not provided']:
+        if not issue:
             validation_errors.append("Issue description is required")
             
         if price <= 0:
@@ -124,39 +130,5 @@ async def update_ticket_email(ticket_id: int, email: str) -> str:
         return f"Sorry, I encountered an error updating the ticket: {str(e)}"
 
 
-@llm.function_tool
-async def check_information_completeness() -> str:
-    """
-    Check if all mandatory customer information has been collected for ticket creation.
-    Use this tool to verify you have all required details before attempting to create a ticket.
-    """
-    missing_info = []
-    
-    # Check what information we still need
-    if not bot_state.collected_info.get("name"):
-        missing_info.append("customer name")
-    if not bot_state.collected_info.get("email"):
-        missing_info.append("email address")
-    if not bot_state.collected_info.get("phone"):
-        missing_info.append("phone number")
-    if not bot_state.collected_info.get("address"):
-        missing_info.append("physical address")
-    if not bot_state.collected_info.get("issue"):
-        missing_info.append("IT issue description")
-    if not bot_state.collected_info.get("price") or bot_state.collected_info.get("price", 0) <= 0:
-        missing_info.append("service price")
-    
-    if missing_info:
-        return f"Missing required information: {', '.join(missing_info)}. Please collect these details before creating a ticket."
-    else:
-        return "All mandatory information collected. Ready to create ticket with: " + \
-               f"Name: {bot_state.collected_info['name']}, " + \
-               f"Email: {bot_state.collected_info['email']}, " + \
-               f"Phone: {bot_state.collected_info['phone']}, " + \
-               f"Address: {bot_state.collected_info['address']}, " + \
-               f"Issue: {bot_state.collected_info['issue']}, " + \
-               f"Price: ${bot_state.collected_info['price']}"
-
-
 # Export all tools for easy import
-ALL_TOOLS = [create_ticket_tool, update_ticket_name, update_ticket_email, check_information_completeness]
+ALL_TOOLS = [create_ticket_tool, update_ticket_name, update_ticket_email]
